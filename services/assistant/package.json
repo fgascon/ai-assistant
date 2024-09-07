@@ -1,0 +1,25 @@
+{
+  "name": "assistant",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "local": "tsx watch src/local.ts | pino-pretty",
+    "dev": "tsx src/terminal.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/play-sound": "^1.1.2",
+    "pino-pretty": "^11.2.2",
+    "tsx": "^4.19.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.12.2",
+    "dotenv": "^16.4.5",
+    "hono": "^4.5.11",
+    "openai": "^4.58.1",
+    "p-queue": "^8.0.1",
+    "pino": "^9.4.0",
+    "play-sound": "^1.1.6",
+    "zod": "^3.23.8"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "infra",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "aws-cdk": "^2.156.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.5.4"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.156.0",
+    "constructs": "^10.3.0"
+  }
+}
