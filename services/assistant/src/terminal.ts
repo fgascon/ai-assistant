@@ -2,7 +2,6 @@
 import "dotenv/config";
 import readline from "node:readline/promises";
 import { startThread } from "./ai/thread";
-import { homeassistant } from "./homeassistant";
 import { say } from "./ai/voice";
 
 const rl = readline.createInterface({
@@ -13,10 +12,6 @@ const rl = readline.createInterface({
 
 async function main() {
   await using thread = await startThread();
-
-  homeassistant.on("toggleDevice", async ({ action, deviceId }) => {
-    console.log(`ha> device ${deviceId} ${action}`);
-  });
 
   rl.prompt();
   for await (const line of rl) {

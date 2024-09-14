@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { getErrorMessage } from "../utils/error";
-import { homeassistant } from "../homeassistant";
+import { deviceManager } from "../homeassistant";
+import { logger } from "../observability/logger";
+import { IotDimmer } from "../homeassistant/kasa/devices";
 
 type ToolImplementation = {
   argumentsSchema: z.ZodSchema<unknown>;
@@ -31,6 +33,7 @@ function parseToolArguments(args: string, schema: z.ZodSchema) {
 }
 
 export async function callTool(name: string, args: string): Promise<string> {
+  console.log("calling tool", name, args);
   try {
     const implementation = toolsImplementation[name];
     if (!implementation) {
@@ -38,30 +41,64 @@ export async function callTool(name: string, args: string): Promise<string> {
     }
 
     const params = parseToolArguments(args, implementation.argumentsSchema);
-    const result = implementation.fnc(params);
-    return JSON.stringify(result);
+    const result = await implementation.fnc(params);
+    const stringifiedResult = JSON.stringify(result);
+    console.log("tool result", stringifiedResult);
+    return stringifiedResult;
   } catch (error) {
-    return JSON.stringify({
+    const stringifiedResult = JSON.stringify({
       error: getErrorMessage(error),
     });
+    console.log("tool result", stringifiedResult);
+    return stringifiedResult;
   }
 }
 
 addTool({
-  name: "toggle_switch",
+  name: "set_state",
   schema: z.object({
-    device_id: z.enum([
-      "living_room",
-      "master_bedroom",
-      "kid_bedroom",
-      "driveway",
-    ]),
-    action: z.enum(["on", "off", "toggle"]),
+    device_id: z.string(),
+    state: z.enum(["on", "off"]),
+    brightness: z.optional(z.number()),
   }),
-  fnc: async ({ action, device_id: deviceId }) => {
-    await homeassistant.toggleDevice({ action, deviceId });
+  fnc: async ({ device_id: name, state, brightness }) => {
+    logger.info(`set state of device "${name}"`, { name, state, brightness });
+    const device = deviceManager.getDeviceByName(name);
+    if (!device) {
+      throw new Error(`Device "${name}" not found`);
+    }
+    switch (state) {
+      case "on":
+        await device.turnOn();
+        break;
+      case "off":
+        await device.turnOff();
+        break;
+    }
+    if (brightness !== undefined) {
+      if (device instanceof IotDimmer) {
+        await device.setBrightness(brightness);
+      } else {
+        return {
+          success: true,
+          note: `Device "${name}" does not support brightness, but device was turned ${state}`,
+        };
+      }
+    }
     return {
       success: true,
     };
+  },
+});
+
+addTool({
+  name: "get_states",
+  schema: z.unknown(),
+  fnc: async () => {
+    return deviceManager.devices.map((device) => ({
+      name: device.name,
+      state: device.state ? "on" : "off",
+      brightness: "brightness" in device ? device.brightness : undefined,
+    }));
   },
 });
