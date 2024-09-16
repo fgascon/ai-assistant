@@ -1,28 +1,28 @@
 import { EventEmitter } from "node:events";
-import { Discovery } from "./discovery";
-import type { Device } from "./devices";
+import { KasaDiscovery } from "./kasa/discovery";
+import type { Device } from "./device";
 
 type DeviceManagerEvents = {
   device: [Device];
   error: [Error];
 };
 
-const deviceWhitelist = [
+const kasaDeviceWhitelist = [
   "80068DE07DD92B029E714DB37829E3A81F221F98",
   "80063E24FAAB946812EB5DFFC453D7581EC37D3F",
 ];
 
 export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
-  private _discovery = new Discovery();
+  private _kasaDiscovery = new KasaDiscovery();
   private _devices: Device[] = [];
 
   constructor() {
     super();
-    this._discovery.on("error", (error) => {
+    this._kasaDiscovery.on("error", (error) => {
       this.emit("error", error);
     });
-    this._discovery.on("device", (device) => {
-      if (deviceWhitelist.includes(device.deviceId)) {
+    this._kasaDiscovery.on("device", (device) => {
+      if (kasaDeviceWhitelist.includes(device.deviceId)) {
         this._devices.push(device);
         this.emit("device", device);
       }
@@ -34,7 +34,7 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
     const discoveryPackets = 3;
     const sleepBetweenPackets = discoveryTimeout / discoveryPackets;
     for (let i = 0; i < discoveryPackets; i++) {
-      await this._discovery.discover();
+      await this._kasaDiscovery.discover();
       await new Promise((resolve) =>
         setTimeout(resolve, sleepBetweenPackets * 1000),
       );
@@ -50,6 +50,6 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
   }
 
   async [Symbol.asyncDispose]() {
-    await this._discovery.close();
+    await this._kasaDiscovery.close();
   }
 }

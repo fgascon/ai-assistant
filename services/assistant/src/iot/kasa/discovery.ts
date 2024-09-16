@@ -1,7 +1,8 @@
 import dgram from "node:dgram";
 import EventEmitter from "node:events";
 import { XorEncryption } from "./xorencryption";
-import { createDevice, Device } from "./devices";
+import { createKasaDevice } from "./kasa-device-factory";
+import type { KasaDevice } from "./devices/base-kasa-device";
 
 const DISCOVERY_PORT = 9999;
 const DISCOVERY_QUERY = {
@@ -14,11 +15,11 @@ const DISCOVERY_PORT_2 = 20002;
 );*/
 
 type DiscoveryEvents = {
-  device: [Device];
+  device: [KasaDevice];
   error: [Error];
 };
 
-export class Discovery extends EventEmitter<DiscoveryEvents> {
+export class KasaDiscovery extends EventEmitter<DiscoveryEvents> {
   private seenHosts = new Set<string>();
   private transport: Promise<dgram.Socket> | undefined;
 
@@ -34,7 +35,7 @@ export class Discovery extends EventEmitter<DiscoveryEvents> {
         this.seenHosts.add(ip);
 
         if (port === DISCOVERY_PORT) {
-          const device = createDevice({ ip, port, data });
+          const device = createKasaDevice({ ip, port, data });
           if (device) {
             this.emit("device", device);
           }
