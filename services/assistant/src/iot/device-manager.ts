@@ -1,9 +1,12 @@
 import { EventEmitter } from "node:events";
 import { KasaDiscovery } from "./kasa/discovery";
 import type { Device } from "./device";
+import { ZigbeeController, type ZigbeeDevice } from "./zigbee";
+import { logger } from "../observability/logger";
 
 type DeviceManagerEvents = {
   device: [Device];
+  "zigbee:command": [string, ZigbeeDevice];
   error: [Error];
 };
 
@@ -14,6 +17,7 @@ const kasaDeviceWhitelist = [
 
 export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
   private _kasaDiscovery = new KasaDiscovery();
+  private _zigbee = new ZigbeeController();
   private _devices: Device[] = [];
 
   constructor() {
@@ -25,6 +29,13 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
       if (kasaDeviceWhitelist.includes(device.deviceId)) {
         this._devices.push(device);
         this.emit("device", device);
+      }
+    });
+    this._zigbee.on("message", ({ type, device }) => {
+      logger.debug("zigbee message:", { type, device });
+      if (type.startsWith("command")) {
+        const commandName = type.substring("command".length).toLowerCase();
+        this.emit("zigbee:command", commandName, device);
       }
     });
   }
@@ -41,6 +52,14 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
     }
   }
 
+  enablePairing() {
+    this._zigbee.enableJoin();
+  }
+
+  disablePairing() {
+    this._zigbee.disableJoin();
+  }
+
   get devices() {
     return this._devices.concat();
   }
@@ -49,7 +68,11 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
     return this._devices.find((device) => device.name === name);
   }
 
+  async close() {
+    await Promise.all([this._kasaDiscovery.close(), this._zigbee.close()]);
+  }
+
   async [Symbol.asyncDispose]() {
-    await this._kasaDiscovery.close();
+    await this.close();
   }
 }

@@ -21,6 +21,7 @@ export interface SwitchDevice extends Device {
   readonly state: boolean;
   turnOn(): Promise<void>;
   turnOff(): Promise<void>;
+  toggle(): Promise<void>;
 }
 
 export interface DimmableDevice extends SwitchDevice {

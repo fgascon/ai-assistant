@@ -36,4 +36,8 @@ export class KasaIotSwitch extends KasaIotDevice implements SwitchDevice {
   async turnOff() {
     await this.setRelayState(0);
   }
+
+  async toggle() {
+    await this.setRelayState(this._relayState === 0 ? 1 : 0);
+  }
 }

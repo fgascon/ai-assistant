@@ -17,6 +17,7 @@ node_modules
 /build
 /voice-cache
 /logs
+/zigbee
 
 # misc
 .DS_Store

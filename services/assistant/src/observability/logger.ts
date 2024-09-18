@@ -1,12 +1,10 @@
-import { fileURLToPath } from "node:url";
 import pino from "pino";
+import { resolveRootPath } from "../utils/path";
 
 const transport = pino.transport({
   target: "pino/file",
   options: {
-    destination: fileURLToPath(
-      new URL("../../../../logs/assistant.log", import.meta.url),
-    ),
+    destination: resolveRootPath("logs/assistant.log"),
   },
 });
 const pinoLogger = pino(
