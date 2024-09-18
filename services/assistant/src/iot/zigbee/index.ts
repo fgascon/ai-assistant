@@ -31,7 +31,7 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
   private herdsman: zh.Controller;
   private deviceLookup: { [s: string]: Device } = {};
 
-  constructor() {
+  constructor(usbSerialPath: string) {
     super();
     this.herdsman = new (zh as unknown as HerdsmanExport).default.Controller({
       network: {
@@ -41,7 +41,7 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
         networkKey: [1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 13],
       },
       serialPort: {
-        path: "/dev/tty.usbserial-1440",
+        path: usbSerialPath,
       },
       databasePath: resolveRootPath("zigbee/database.db"),
       databaseBackupPath: resolveRootPath("zigbee/database.db.backup"),
