@@ -5,6 +5,8 @@ import { ZigbeeController, type ZigbeeDevice } from "./zigbee";
 import { logger } from "../observability/logger";
 import { USBWatcher } from "./usb";
 import { zigbeeConfig } from "../config";
+import { DeviceRegister } from "./device-register";
+import { resolveRootPath } from "../utils/path";
 
 type DeviceManagerEvents = {
   device: [Device];
@@ -12,15 +14,14 @@ type DeviceManagerEvents = {
   error: [Error];
 };
 
-const kasaDeviceWhitelist = [
-  "80068DE07DD92B029E714DB37829E3A81F221F98",
-  "80063E24FAAB946812EB5DFFC453D7581EC37D3F",
-];
-
 export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
+  private _devices: Device[] = [];
+  private _deviceRegister = new DeviceRegister({
+    path: resolveRootPath("data/devices.yaml"),
+  });
+  private _pairingEnabled = false;
   private _kasaDiscovery = new KasaDiscovery();
   private _zigbee: ZigbeeController | undefined;
-  private _devices: Device[] = [];
 
   constructor() {
     super();
@@ -28,10 +29,7 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
       this.emit("error", error);
     });
     this._kasaDiscovery.on("device", (device) => {
-      if (kasaDeviceWhitelist.includes(device.deviceId)) {
-        this._devices.push(device);
-        this.emit("device", device);
-      }
+      this.addDevice(device);
     });
 
     if (zigbeeConfig) {
@@ -50,6 +48,12 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
     }
   }
 
+  private addDevice(device: Device) {
+    this._devices.push(device);
+    this._deviceRegister.registerDevice(device);
+    this.emit("device", device);
+  }
+
   private async addZigbeeController(usbSerialPath: string) {
     if (this._zigbee) {
       this._zigbee.removeAllListeners();
@@ -66,6 +70,12 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
         this.emit("zigbee:command", commandName, device);
       }
     });
+    this._zigbee.on("device", (device) => {
+      this.addDevice(device);
+    });
+    if (this._pairingEnabled) {
+      this._zigbee.enableJoin();
+    }
   }
 
   private async removeZigbeeController() {
@@ -89,10 +99,12 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
   }
 
   enablePairing() {
+    this._pairingEnabled = true;
     this._zigbee?.enableJoin();
   }
 
   disablePairing() {
+    this._pairingEnabled = false;
     this._zigbee?.disableJoin();
   }
 
@@ -104,10 +116,16 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
     return this._devices.find((device) => device.name === name);
   }
 
+  getDeviceByLLMId(llmId: string | number) {
+    const id = typeof llmId === "string" ? parseInt(llmId, 10) : llmId;
+    return this._devices.find((device) => device.llmId === id);
+  }
+
   async close() {
     await Promise.all([
       this._kasaDiscovery.close(),
       this.removeZigbeeController(),
+      this._deviceRegister.close(),
     ]);
   }
 

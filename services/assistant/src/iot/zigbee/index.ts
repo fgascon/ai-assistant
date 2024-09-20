@@ -2,9 +2,12 @@ import EventEmitter from "node:events";
 import * as zh from "zigbee-herdsman";
 import { resolveRootPath } from "../../utils/path";
 import { logger } from "../../observability/logger";
-import type { DeviceType } from "./zh-types";
-import Device from "./model/device";
+import InternalZigbeeDevice from "./model/device";
 import { setLogger } from "./logger";
+import type { ZigbeeDevice } from "./devices/base-zigbee-device";
+import { ZigbeeButton } from "./devices/zigbee-button";
+
+export type { ZigbeeDevice };
 
 setLogger();
 
@@ -14,22 +17,16 @@ type HerdsmanExport = {
   };
 };
 
-export type ZigbeeDevice = {
-  ieeeAddr: string;
-  description: string;
-  type: DeviceType;
-  vendor: string;
-  model: string;
-};
-
 type ZigbeeControllerEvents = {
+  device: [ZigbeeDevice];
   message: [{ type: string; device: ZigbeeDevice }];
   error: [unknown];
 };
 
 export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
   private herdsman: zh.Controller;
-  private deviceLookup: { [s: string]: Device } = {};
+  private internlDeviceLookup: { [s: string]: InternalZigbeeDevice } = {};
+  private deviceLookup: { [s: string]: ZigbeeDevice } = {};
 
   constructor(usbSerialPath: string) {
     super();
@@ -52,69 +49,105 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
       acceptJoiningDeviceHandler: async () => true,
     });
     this.herdsman.on("message", async (data) => {
-      const device = this.resolveDevice(data.device.ieeeAddr);
+      const device = await this.resolveDevice(data.device.ieeeAddr);
       if (!device) {
         return;
       }
-      await device.resolveDefinition();
-      if (device.isSupported && device.definition) {
-        this.emit("message", {
-          type: data.type,
-          device: {
-            ieeeAddr: device.ieeeAddr,
-            description: device.definition.description,
-            type: device.zh.type,
-            vendor: device.definition.vendor,
-            model: device.definition.model,
-          },
-        });
-      }
+      this.emit("message", {
+        type: data.type,
+        device,
+      });
     });
     this.herdsman.on("deviceInterview", async (data) => {
-      const device = this.resolveDevice(data.device.ieeeAddr);
-      if (!device) return; // Prevent potential race
-      await device.resolveDefinition();
+      const device = this.resolveInternalDevice(data.device.ieeeAddr);
+      if (!device) return;
       const d = { device, status: data.status };
       this.logDeviceInterview(d);
+      await this.resolveDevice(data.device.ieeeAddr);
     });
 
-    this.herdsman.start().catch((error) => {
+    this.boot().catch((error) => {
       this.emit("error", error);
     });
   }
 
+  async boot() {
+    await this.herdsman.start();
+    for (const herdsmanDevice of this.herdsman.getDevicesIterator()) {
+      await this.resolveDevice(herdsmanDevice.ieeeAddr);
+    }
+  }
+
   enableJoin() {
     this.herdsman.permitJoin(true, undefined, 600);
-    console.log("permitted join");
   }
 
   disableJoin() {
     this.herdsman.permitJoin(false);
-    console.log("disabled join");
   }
 
-  private resolveDevice(ieeeAddr: string): Device | undefined {
-    if (!this.deviceLookup[ieeeAddr]) {
+  async *getDevices() {
+    for (const herdsmanDevice of this.herdsman.getDevicesIterator()) {
+      const device = await this.resolveDevice(herdsmanDevice.ieeeAddr);
+      if (device) {
+        yield device;
+      }
+    }
+  }
+
+  private resolveInternalDevice(
+    ieeeAddr: string,
+  ): InternalZigbeeDevice | undefined {
+    if (!this.internlDeviceLookup[ieeeAddr]) {
       const device = this.herdsman.getDeviceByIeeeAddr(ieeeAddr);
       if (device) {
-        this.deviceLookup[ieeeAddr] = new Device(device);
+        this.internlDeviceLookup[ieeeAddr] = new InternalZigbeeDevice(device);
       }
     }
 
-    const device = this.deviceLookup[ieeeAddr];
+    const device = this.internlDeviceLookup[ieeeAddr];
     if (device && !device.zh.isDeleted) {
-      device.ensureInSettings();
       return device;
     }
 
     return undefined;
   }
 
+  private async resolveDevice(
+    ieeeAddr: string,
+  ): Promise<ZigbeeDevice | undefined> {
+    const existingDevice = this.deviceLookup[ieeeAddr];
+    if (existingDevice) {
+      return existingDevice;
+    }
+
+    const internalDevice = this.resolveInternalDevice(ieeeAddr);
+    if (!internalDevice) {
+      return undefined;
+    }
+    await internalDevice.resolveDefinition();
+    const { definition } = internalDevice;
+    if (!internalDevice.isSupported || !definition) {
+      return undefined;
+    }
+    if (Array.isArray(definition.exposes)) {
+      for (const expose of definition.exposes) {
+        if (expose.type === "enum" && expose.name === "action") {
+          const device = new ZigbeeButton(internalDevice, definition);
+          this.deviceLookup[ieeeAddr] = device;
+          this.emit("device", device);
+          return device;
+        }
+      }
+    }
+    return undefined;
+  }
+
   private logDeviceInterview(data: {
-    device: Device;
+    device: InternalZigbeeDevice;
     status: "started" | "successful" | "failed";
   }): void {
-    const name = data.device.name;
+    const name = data.device.defaultName;
     if (data.status === "successful") {
       logger.info(
         `Successfully interviewed '${name}', device has successfully been paired`,

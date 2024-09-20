@@ -39,4 +39,11 @@ export class KasaIotDimmer extends KasaIotSwitch implements DimmableDevice {
     });
     this._brightness = brightness;
   }
+
+  override get detailsForLLM() {
+    return {
+      ...super.detailsForLLM,
+      brightness: this.brightness,
+    };
+  }
 }

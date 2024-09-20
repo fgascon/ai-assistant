@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "eslint .",
     "logs": "tail -f logs/assistant.log | pino-pretty",
+    "start": "pnpm --filter assistant start",
     "dev": "pnpm --filter assistant run dev"
   },
   "devDependencies": {

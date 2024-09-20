@@ -24,7 +24,7 @@ interface DeviceOptions {
   qos?: 0 | 1 | 2;
 }
 
-export default class Device {
+export default class InternalZigbeeDevice {
   public zh: zh.Device;
   public definition: zhc.Definition | null = null;
   private _definitionModelID: string | null = null;
@@ -41,7 +41,7 @@ export default class Device {
       //...settings.getDevice(this.ieeeAddr),
     };
   }
-  get name(): string {
+  get defaultName(): string {
     return this.zh.type === "Coordinator"
       ? "Coordinator"
       : this.options?.friendly_name || this.ieeeAddr;
@@ -135,7 +135,7 @@ export default class Device {
     return this.zh.manufacturerID === 4476;
   }
 
-  isDevice(): this is Device {
+  isDevice(): this is InternalZigbeeDevice {
     return true;
   }
 }

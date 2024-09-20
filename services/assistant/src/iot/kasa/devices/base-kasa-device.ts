@@ -15,16 +15,16 @@ export type KasaDeviceInfo = {
 export abstract class KasaDevice extends Device {
   public readonly ip: string;
   public readonly port: number;
-  public readonly deviceId: string;
 
   constructor(info: KasaDeviceInfo) {
     super({
+      id: info.deviceId,
       name: info.alias || info.deviceName,
-      brand: "kasa",
+      manufacturer: "kasa",
       model: info.model,
+      integration: "kasa",
     });
     this.ip = info.ip;
     this.port = info.port;
-    this.deviceId = info.deviceId;
   }
 }

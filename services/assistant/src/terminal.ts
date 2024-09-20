@@ -25,7 +25,10 @@ async function main() {
   }
 
   rl.close();
+  console.log("Shutting down...");
   await deviceManager.close();
+
+  console.log("Goodbye!");
   process.exit(0);
 }
 

@@ -4,6 +4,7 @@ import { logger } from "../observability/logger";
 import { requireEnvVar } from "../config";
 import { callTool } from "./tools";
 import { openai } from "./openai";
+import { getDevicesListForLLM } from "../iot";
 
 const assistantId = requireEnvVar("OPENAI_ASSISTANT_ID");
 
@@ -103,6 +104,7 @@ class Thread extends EventEmitter<ThreadEvents> {
   run() {
     const runStream = openai.beta.threads.runs.stream(this.id, {
       assistant_id: this.assistantId,
+      additional_instructions: getDevicesListForLLM(),
     });
     runStream.on("error", (error) => {
       this.emit("error", error);

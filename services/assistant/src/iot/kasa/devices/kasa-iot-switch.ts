@@ -40,4 +40,11 @@ export class KasaIotSwitch extends KasaIotDevice implements SwitchDevice {
   async toggle() {
     await this.setRelayState(this._relayState === 0 ? 1 : 0);
   }
+
+  override get detailsForLLM() {
+    return {
+      ...super.detailsForLLM,
+      state: this.state ? "on" : "off",
+    };
+  }
 }
