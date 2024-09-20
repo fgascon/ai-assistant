@@ -1,10 +1,13 @@
+import * as fs from "node:fs";
 import pino from "pino";
-import { resolveRootPath } from "../utils/path";
+import { dataPath } from "../utils/path";
+
+fs.mkdirSync(dataPath("logs"), { recursive: true });
 
 const transport = pino.transport({
   target: "pino/file",
   options: {
-    destination: resolveRootPath("logs/assistant.log"),
+    destination: dataPath("logs/assistant.log"),
   },
 });
 const pinoLogger = pino(

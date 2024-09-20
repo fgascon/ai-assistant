@@ -1,7 +1,8 @@
-import { fileURLToPath } from "url";
+import * as path from "node:path";
+import { requireEnvVar } from "../config";
 
-const rootUrl = new URL("../../../../", import.meta.url);
+const dataDirPath = path.resolve(process.cwd(), requireEnvVar("DATA_PATH"));
 
-export function resolveRootPath(relativePath: string | URL): string {
-  return fileURLToPath(new URL(relativePath, rootUrl));
+export function dataPath(relativePath: string): string {
+  return path.resolve(dataDirPath, relativePath);
 }

@@ -1,6 +1,6 @@
 import EventEmitter from "node:events";
 import * as zh from "zigbee-herdsman";
-import { resolveRootPath } from "../../utils/path";
+import { dataPath } from "../../utils/path";
 import { logger } from "../../observability/logger";
 import InternalZigbeeDevice from "./model/device";
 import { setLogger } from "./logger";
@@ -40,9 +40,9 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
       serialPort: {
         path: usbSerialPath,
       },
-      databasePath: resolveRootPath("zigbee/database.db"),
-      databaseBackupPath: resolveRootPath("zigbee/database.db.backup"),
-      backupPath: resolveRootPath("zigbee/coordinator_backup.json"),
+      databasePath: dataPath("zigbee-database.db"),
+      databaseBackupPath: dataPath("zigbee-database.db.backup"),
+      backupPath: dataPath("zigbee-coordinator-backup.json"),
       adapter: {
         disableLED: false,
       },

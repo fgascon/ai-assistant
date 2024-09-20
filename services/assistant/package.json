@@ -4,13 +4,14 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "local": "tsx watch src/local.ts | pino-pretty",
-    "start": "tsx src/server.ts",
+    "build": "tsup src/server.ts --clean --sourcemap --format esm --target node20 --outDir dist",
     "dev": "tsx src/terminal.ts"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/play-sound": "^1.1.2",
     "pino-pretty": "^11.2.2",
+    "tsup": "^8.3.0",
     "tsx": "^4.19.0"
   },
   "dependencies": {

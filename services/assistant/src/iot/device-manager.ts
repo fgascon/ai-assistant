@@ -6,7 +6,7 @@ import { logger } from "../observability/logger";
 import { USBWatcher } from "./usb";
 import { zigbeeConfig } from "../config";
 import { DeviceRegister } from "./device-register";
-import { resolveRootPath } from "../utils/path";
+import { dataPath } from "../utils/path";
 
 type DeviceManagerEvents = {
   device: [Device];
@@ -17,7 +17,7 @@ type DeviceManagerEvents = {
 export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
   private _devices: Device[] = [];
   private _deviceRegister = new DeviceRegister({
-    path: resolveRootPath("data/devices.yaml"),
+    path: dataPath("devices.yaml"),
   });
   private _pairingEnabled = false;
   private _kasaDiscovery = new KasaDiscovery();
