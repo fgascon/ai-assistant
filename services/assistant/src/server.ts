@@ -1,6 +1,11 @@
 import "dotenv/config";
 import { deviceManager } from "./iot";
-import { logger } from "./observability/logger";
+import { configureLogger, logger } from "./observability/logger";
+
+configureLogger({
+  level: "debug",
+  destination: 1,
+});
 
 process.on("SIGINT", async () => {
   deviceManager

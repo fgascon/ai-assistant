@@ -1,9 +1,12 @@
 // terminal interface to interact with the assistant
 import "dotenv/config";
+import fs from "node:fs/promises";
 import readline from "node:readline/promises";
 import { startThread } from "./ai/thread";
 import { say } from "./ai/voice";
 import { deviceManager } from "./iot";
+import { dataPath } from "./utils/path";
+import { configureLogger } from "./observability/logger";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -12,6 +15,12 @@ const rl = readline.createInterface({
 });
 
 async function main() {
+  await fs.mkdir(dataPath("logs"), { recursive: true });
+  configureLogger({
+    level: "debug",
+    destination: dataPath("logs/assistant.log"),
+  });
+
   {
     await using thread = await startThread();
 
