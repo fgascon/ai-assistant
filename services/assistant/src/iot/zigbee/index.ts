@@ -119,6 +119,7 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
 
     const device = this.internlDeviceLookup[ieeeAddr];
     if (device && !device.zh.isDeleted) {
+      device.ensureInSettings();
       return device;
     }
 
