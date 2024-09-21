@@ -51,6 +51,7 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
       acceptJoiningDeviceHandler: async () => true,
     });
     this.herdsman.on("message", async (data) => {
+      logger.debug("Received Zigbee message", { data });
       const device = await this.resolveDevice(data.device.ieeeAddr);
       if (!device) {
         return;
@@ -63,6 +64,7 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
     this.herdsman.on("deviceInterview", async (data) => {
       const device = this.resolveInternalDevice(data.device.ieeeAddr);
       if (!device) return;
+      await device.resolveDefinition();
       const d = { device, status: data.status };
       this.logDeviceInterview(d);
       await this.resolveDevice(data.device.ieeeAddr);
