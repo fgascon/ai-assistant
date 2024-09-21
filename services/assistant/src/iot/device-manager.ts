@@ -101,11 +101,13 @@ export class DeviceManager extends EventEmitter<DeviceManagerEvents> {
   enablePairing() {
     this._pairingEnabled = true;
     this._zigbee?.enableJoin();
+    logger.info("Zigbee pairing enabled");
   }
 
   disablePairing() {
     this._pairingEnabled = false;
     this._zigbee?.disableJoin();
+    logger.info("Zigbee pairing disabled");
   }
 
   get devices() {

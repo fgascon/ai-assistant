@@ -17,3 +17,7 @@ process.on("SIGINT", async () => {
       process.exit(0);
     });
 });
+
+if (process.env.PAIRING === "enabled") {
+  deviceManager.enablePairing();
+}
