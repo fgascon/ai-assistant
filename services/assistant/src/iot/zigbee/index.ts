@@ -27,6 +27,8 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
   private herdsman: zh.Controller;
   private internlDeviceLookup: { [s: string]: InternalZigbeeDevice } = {};
   private deviceLookup: { [s: string]: ZigbeeDevice } = {};
+  private readyPromise: Promise<void>;
+  private setReady: () => void = () => {};
 
   constructor(usbSerialPath: string) {
     super();
@@ -66,6 +68,9 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
       await this.resolveDevice(data.device.ieeeAddr);
     });
 
+    this.readyPromise = new Promise((resolve) => {
+      this.setReady = resolve;
+    });
     this.boot().catch((error) => {
       this.emit("error", error);
     });
@@ -76,14 +81,19 @@ export class ZigbeeController extends EventEmitter<ZigbeeControllerEvents> {
     for (const herdsmanDevice of this.herdsman.getDevicesIterator()) {
       await this.resolveDevice(herdsmanDevice.ieeeAddr);
     }
+    this.setReady();
   }
 
   enableJoin() {
-    this.herdsman.permitJoin(true, undefined, 600);
+    this.readyPromise.then(() => {
+      this.herdsman.permitJoin(true, undefined, 600);
+    });
   }
 
   disableJoin() {
-    this.herdsman.permitJoin(false);
+    this.readyPromise.then(() => {
+      this.herdsman.permitJoin(false);
+    });
   }
 
   async *getDevices() {
